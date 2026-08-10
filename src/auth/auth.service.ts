@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -7,6 +7,8 @@ import { LoginDto, RefreshTokenDto, RegisterDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   /** Public (anon-key) client — used only for password-based sign-in/refresh,
    *  since the GoTrue admin API (service role) doesn't do password auth. */
   private readonly publicClient: SupabaseClient;
@@ -29,8 +31,6 @@ export class AuthService {
       throw new BadRequestException('licenseNumber is required when registering as a chauffeur');
     }
 
-    // Creates the auth.users row with metadata that Phase 1's
-    // handle_new_auth_user trigger reads to create profiles/customers/chauffeurs.
     const { data, error } = await this.supabase.getClient().auth.admin.createUser({
       email: dto.email,
       password: dto.password,
@@ -44,14 +44,10 @@ export class AuthService {
     });
 
     if (error || !data.user) {
-      console.error(
-        '[register] Supabase createUser raw error:',
-        JSON.stringify(error, Object.getOwnPropertyNames(error ?? {})),
-      );
-      throw new BadRequestException(error?.message ?? 'Registration failed');
+      this.logger.error(`Supabase admin.createUser failed for ${dto.email}: ${this.describeError(error)}`);
+      throw new BadRequestException(this.extractMessage(error));
     }
 
-    // Immediately sign in to return usable tokens to the client.
     return this.login({ email: dto.email, password: dto.password });
   }
 
@@ -91,16 +87,6 @@ export class AuthService {
     };
   }
 
-  /**
-   * Public on purpose: this is the single source of truth for "what a user
-   * profile looks like over the wire". Both /auth/login and /auth/me call
-   * this so the Flutter app's UserProfile.fromJson() always receives the
-   * exact same shape — including created_at and is_active, which
-   * UserProfile.fromJson() requires (created_at) or defaults (is_active).
-   * Previously /auth/me returned the JWT-derived AuthenticatedUser object
-   * instead (different, camelCase, missing fields), which crashed the app
-   * on the next cold start after a successful login.
-   */
   async getProfile(userId: string) {
     const { data, error } = await this.supabase
       .getClient()
@@ -126,6 +112,23 @@ export class AuthService {
       return { success: true, usersCount: data.users.length };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }
+
+  /** Best-effort human-readable message from a Supabase AuthError, which
+   *  doesn't always populate `.message` (e.g. some admin-API failures). */
+  private extractMessage(error: unknown): string {
+    if (!error) return 'Registration failed';
+    const e = error as { message?: string; msg?: string; error_description?: string; status?: number };
+    return e.message || e.msg || e.error_description || `Registration failed (status ${e.status ?? 'unknown'})`;
+  }
+
+  /** Full diagnostic dump for server-side logs only — never sent to the client. */
+  private describeError(error: unknown): string {
+    try {
+      return JSON.stringify(error, Object.getOwnPropertyNames(error as object));
+    } catch {
+      return String(error);
     }
   }
 }
