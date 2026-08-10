@@ -44,6 +44,10 @@ export class AuthService {
     });
 
     if (error || !data.user) {
+      console.error(
+        '[register] Supabase createUser raw error:',
+        JSON.stringify(error, Object.getOwnPropertyNames(error ?? {})),
+      );
       throw new BadRequestException(error?.message ?? 'Registration failed');
     }
 
