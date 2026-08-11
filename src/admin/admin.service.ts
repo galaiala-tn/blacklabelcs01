@@ -127,7 +127,7 @@ export class AdminService {
   // ---------------------------------------------------------------------
   // Chauffeurs
   // ---------------------------------------------------------------------
-  async listChauffeurs() {
+ async listChauffeurs() {
   const { data, error } = await this.supabase
     .getClient()
     .from('chauffeurs')
