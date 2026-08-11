@@ -131,7 +131,7 @@ export class AdminService {
   const { data, error } = await this.supabase
     .getClient()
     .from('chauffeurs')
-    .select('*, profiles!chauffeurs_id_fkey(full_name, email, phone, is_active), vehicles!vehicles_chauffeur_id_fkey(make, model, plate_number)')
+    .select('*, profiles!chauffeurs_id_fkey(full_name, email, phone, is_active), vehicles!fk_chauffeurs_vehicle(make, model, plate_number)')
     .order('created_at', { ascending: false });
 
   if (error) throw new BadRequestException(error.message);
