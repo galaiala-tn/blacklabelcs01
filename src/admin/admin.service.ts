@@ -128,15 +128,16 @@ export class AdminService {
   // Chauffeurs
   // ---------------------------------------------------------------------
   async listChauffeurs() {
-    const { data, error } = await this.supabase
-      .getClient()
-      .from('chauffeurs')
-      .select('*, profiles:id(full_name, email, phone, is_active), vehicles(make, model, plate_number)')
-      .order('created_at', { ascending: false });
+  const { data, error } = await this.supabase
+    .getClient()
+    .from('chauffeurs')
+    .select('*, profiles!chauffeurs_id_fkey(full_name, email, phone, is_active), vehicles(make, model, plate_number)')
+    .order('created_at', { ascending: false });
 
-    if (error) throw new BadRequestException(error.message);
-    return data;
-  }
+  if (error) throw new BadRequestException(error.message);
+  return data;
+}
+
 
   async updateChauffeur(chauffeurId: string, dto: UpdateChauffeurDto) {
     const payload: Record<string, unknown> = {};
@@ -177,16 +178,16 @@ export class AdminService {
   }
 
   async listPendingVerifications() {
-    const { data, error } = await this.supabase
-      .getClient()
-      .from('chauffeurs')
-      .select('*, profiles:id(full_name, email, phone)')
-      .eq('verification_status', 'pending')
-      .order('created_at', { ascending: true });
+  const { data, error } = await this.supabase
+    .getClient()
+    .from('chauffeurs')
+    .select('*, profiles!chauffeurs_id_fkey(full_name, email, phone)')
+    .eq('verification_status', 'pending')
+    .order('created_at', { ascending: true });
 
-    if (error) throw new BadRequestException(error.message);
-    return data;
-  }
+  if (error) throw new BadRequestException(error.message);
+  return data;
+}
 
   // ---------------------------------------------------------------------
   // Gift cards
