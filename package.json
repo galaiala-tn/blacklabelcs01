@@ -28,6 +28,7 @@
     "class-validator": "^0.14.1",
     "graceful-fs": "^4.2.11",
     "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^4.1.0",
     "multer": "^2.2.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { AppRole } from '../../common/enums';
-
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { passportJwtSecret } from 'jwks-rsa';
 export interface AuthenticatedUser {
   id: string;
   email: string;
@@ -31,10 +31,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly supabase: SupabaseService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKey: config.get<string>('supabase.jwtSecret'),
-    });
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  ignoreExpiration: false,
+  algorithms: ['ES256'],
+  secretOrKeyProvider: passportJwtSecret({
+    jwksUri: `${config.get<string>('supabase.url')}/auth/v1/.well-known/jwks.json`,
+    cache: true,
+    rateLimit: true,
+  }),
+});
   }
 
   async validate(payload: SupabaseJwtPayload): Promise<AuthenticatedUser> {

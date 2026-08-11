@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -13,6 +13,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
  */
 @Injectable()
 export class SupabaseService implements OnModuleInit {
+  private readonly logger = new Logger(SupabaseService.name);
   private client!: SupabaseClient;
 
   constructor(private readonly config: ConfigService) {}
@@ -20,6 +21,10 @@ export class SupabaseService implements OnModuleInit {
   onModuleInit() {
     const url = this.config.get<string>('supabase.url');
     const serviceRoleKey = this.config.get<string>('supabase.serviceRoleKey');
+
+    this.logger.log(`SUPABASE_URL: ${url}`);
+    this.logger.log(`SERVICE_ROLE exists: ${!!serviceRoleKey}`);
+    this.logger.log(`SERVICE_ROLE length: ${serviceRoleKey?.length}`);
 
     if (!url || !serviceRoleKey) {
       throw new Error(
