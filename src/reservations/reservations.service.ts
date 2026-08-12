@@ -278,7 +278,7 @@ export class ReservationsService {
       .getClient()
       .from('reservations')
       .select(
-        `*, reservation_stops(*), vehicle_categories(code, display_name), chauffeurs(id, profiles!chauffeurs_id_fkey(full_name, phone, avatar_url)), vehicles(make, model, color, plate_number, photo_url)`,
+        `*, reservation_stops(*), vehicle_categories(code, display_name), chauffeurs(id, profiles!chauffeurs_id_fkey(full_name, phone, avatar_url), vehicles!fk_chauffeurs_vehicle(make, model, color, plate_number, photo_url)), vehicles(make, model, color, plate_number, photo_url)`,
       )
       .eq('id', id)
       .single();
@@ -290,6 +290,13 @@ export class ReservationsService {
     if (!involved && user.role !== AppRole.ADMIN) {
       throw new ForbiddenException('You do not have access to this reservation');
     }
+
+    // Fall back to the chauffeur's own vehicle when no vehicle was
+    // explicitly picked for this specific reservation.
+    if (!row.vehicles && row.chauffeurs?.vehicles) {
+      row.vehicles = row.chauffeurs.vehicles;
+    }
+
     return row;
   }
 
