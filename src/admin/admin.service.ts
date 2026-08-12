@@ -143,6 +143,7 @@ export class AdminService {
     const payload: Record<string, unknown> = {};
     if (dto.licenseNumber !== undefined) payload.license_number = dto.licenseNumber;
     if (dto.status !== undefined) payload.status = dto.status;
+    if (dto.vehicleId !== undefined) payload.vehicle_id = dto.vehicleId;
 
     const { data, error } = await this.supabase
       .getClient()

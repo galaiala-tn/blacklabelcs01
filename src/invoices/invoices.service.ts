@@ -32,7 +32,10 @@ export class InvoicesService {
       .eq('id', reservationId)
       .single();
 
-    if (error || !reservation) throw new NotFoundException('Reservation not found');
+    if (error || !reservation) {
+  this.logger.error(`generateForReservation query failed: ${error?.message}`);
+  throw new NotFoundException('Reservation not found');
+}
 
     const { data: existing } = await client
       .from('invoices')

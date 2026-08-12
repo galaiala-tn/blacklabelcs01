@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsEmail, IsEnum, IsIn, IsNumber, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsEmail, IsEnum, IsIn, IsNumber, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 import { AppRole } from '../../common/enums';
 
 export class UpdateChauffeurDto {
@@ -9,6 +9,10 @@ export class UpdateChauffeurDto {
   @IsOptional()
   @IsIn(['offline', 'available', 'busy'])
   status?: 'offline' | 'available' | 'busy';
+
+  @IsOptional()
+  @IsUUID()
+  vehicleId?: string;
 }
 
 export class UpdateCustomerActiveDto {
