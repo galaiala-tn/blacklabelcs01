@@ -189,13 +189,13 @@ export class PaymentsService {
 
   /** Admin-wide view — every payment, with customer name for display. */
   async listAll() {
-    const { data, error } = await this.supabase
-      .getClient()
-      .from('payments')
-      .select('*, customers:customer_id(profiles:id(full_name, email))')
-      .order('created_at', { ascending: false });
+  const { data, error } = await this.supabase
+    .getClient()
+    .from('payments')
+    .select('*, customers:customer_id!payments_customer_id_fkey(profiles!customers_id_fkey(full_name, email))')
+    .order('created_at', { ascending: false });
 
-    if (error) throw new BadRequestException(error.message);
-    return data;
-  }
+  if (error) throw new BadRequestException(error.message);
+  return data;
+}
 }
