@@ -277,17 +277,20 @@ export class ReservationsService {
     const { data, error } = await this.supabase
       .getClient()
       .from('reservations')
-      .select('*, reservation_stops(*), vehicle_categories(code, display_name)')
+      .select(
+        `*, reservation_stops(*), vehicle_categories(code, display_name), chauffeurs(id, profiles!chauffeurs_id_fkey(full_name, phone, avatar_url)), vehicles(make, model, color, plate_number, photo_url)`,
+      )
       .eq('id', id)
       .single();
 
     if (error || !data) throw new NotFoundException('Reservation not found');
 
-    const involved = data.customer_id === user.id || data.chauffeur_id === user.id;
+    const row = data as any;
+    const involved = row.customer_id === user.id || row.chauffeur_id === user.id;
     if (!involved && user.role !== AppRole.ADMIN) {
       throw new ForbiddenException('You do not have access to this reservation');
     }
-    return data;
+    return row;
   }
 
   private selectReservations() {
