@@ -114,15 +114,15 @@ export class InvoicesService {
 
   /** Admin-wide view — every invoice, with customer name for display. */
   async listAll() {
-    const { data, error } = await this.supabase
-      .getClient()
-      .from('invoices')
-      .select('*, customers:customer_id(profiles:id(full_name, email))')
-      .order('issued_at', { ascending: false });
+  const { data, error } = await this.supabase
+    .getClient()
+    .from('invoices')
+    .select('*, customers!invoices_customer_id_fkey(profiles!customers_id_fkey(full_name, email))')
+    .order('issued_at', { ascending: false });
 
-    if (error) throw new BadRequestException(error.message);
-    return data;
-  }
+  if (error) throw new BadRequestException(error.message);
+  return data;
+}
 
   /** Returns a time-limited signed URL to download the invoice PDF. */
   async getDownloadUrl(invoiceId: string, requestingCustomerId?: string) {
