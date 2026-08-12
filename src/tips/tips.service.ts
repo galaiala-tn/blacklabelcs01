@@ -43,17 +43,29 @@ export class TipsService {
       .maybeSingle();
     if (existingTip) throw new BadRequestException('You have already tipped this trip');
 
-    const intent = await this.stripe.paymentIntents.create({
-      amount: Math.round(dto.amount * 100),
-      currency: 'usd',
-      metadata: {
-        type: 'tip',
-        reservationId: reservation.id,
-        customerId,
-        chauffeurId: reservation.chauffeur_id,
+    const intent = await this.stripe.paymentIntents.create(
+      {
+        amount: Math.round(dto.amount * 100),
+        currency: 'usd',
+        metadata: {
+          type: 'tip',
+          reservationId: reservation.id,
+          customerId,
+          chauffeurId: reservation.chauffeur_id,
+        },
+        automatic_payment_methods: { enabled: true },
       },
-      automatic_payment_methods: { enabled: true },
-    });
+      {
+        // Deterministic per reservation + amount: a network retry
+        // (double-tap, dropped response, etc.) for the SAME amount reuses
+        // the same PaymentIntent instead of creating — and charging — a
+        // second one. Amount is included so that if the customer genuinely
+        // changes the amount (e.g. after a decline) and retries, Stripe
+        // sees it as a new key rather than rejecting it as a parameter
+        // mismatch on the old one. Stripe keys expire after 24h.
+        idempotencyKey: `tip-intent-${reservation.id}-${Math.round(dto.amount * 100)}`,
+      },
+    );
 
     return { clientSecret: intent.client_secret, amount: dto.amount };
   }
