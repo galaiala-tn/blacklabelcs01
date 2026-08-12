@@ -100,11 +100,11 @@ export class AdminService {
   // ---------------------------------------------------------------------
   // Customers
   // ---------------------------------------------------------------------
-  async listCustomers() {
+   async listCustomers() {
     const { data, error } = await this.supabase
       .getClient()
       .from('customers')
-      .select('*, profiles:id(full_name, email, phone, is_active, created_at)')
+      .select('*, profiles!customers_id_fkey(full_name, email, phone, is_active, created_at)')
       .order('created_at', { ascending: false });
 
     if (error) throw new BadRequestException(error.message);
