@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -33,5 +33,12 @@ export class VehiclesController {
   @Post('vehicles')
   createVehicle(@Body() dto: CreateVehicleDto) {
     return this.vehiclesService.createVehicle(dto);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(AppRole.ADMIN)
+  @Delete('vehicles/:id')
+  deleteVehicle(@Param('id') id: string) {
+    return this.vehiclesService.deleteVehicle(id);
   }
 }

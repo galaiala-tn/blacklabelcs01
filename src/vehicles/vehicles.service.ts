@@ -69,4 +69,17 @@ export class VehiclesService {
     if (error) throw new BadRequestException(error.message);
     return data;
   }
+
+  async deleteVehicle(id: string) {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('vehicles')
+      .update({ is_active: false })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) throw new NotFoundException('Vehicle not found');
+    return data;
+  }
 }
