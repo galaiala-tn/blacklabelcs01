@@ -16,10 +16,12 @@ export class EarningsService {
     if (error) throw new BadRequestException(error.message);
 
     const totalEarnings = (data ?? []).reduce((sum, row) => sum + Number(row.chauffeur_earning), 0);
+    const totalTips = (data ?? []).reduce((sum, row) => sum + Number(row.tip_amount), 0);
     const totalTrips = (data ?? []).length;
 
     return {
       totalEarnings: round2(totalEarnings),
+      totalTips: round2(totalTips),
       totalTrips,
       trips: data,
     };
