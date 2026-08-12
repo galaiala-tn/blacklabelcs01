@@ -27,7 +27,7 @@ export class InvoicesService {
     const { data: reservation, error } = await client
       .from('reservations')
       .select(
-        '*, customers:customer_id(id, profiles:id(full_name, email)), vehicle_categories(display_name)',
+        '*, customers:customer_id(id, profiles!customers_id_fkey(full_name, email)), vehicle_categories(display_name)',
       )
       .eq('id', reservationId)
       .single();
