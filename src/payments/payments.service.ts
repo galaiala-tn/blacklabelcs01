@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { SupabaseService } from '../supabase/supabase.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TipsService } from '../tips/tips.service';
 import {
   NotificationType,
   PaymentStatus,
@@ -30,6 +31,7 @@ export class PaymentsService {
     private readonly supabase: SupabaseService,
     private readonly config: ConfigService,
     private readonly notifications: NotificationsService,
+    private readonly tipsService: TipsService,
   ) {
     const secretKey = this.config.get<string>('stripe.secretKey');
     // No explicit apiVersion pin: defaults to the account's dashboard-configured
@@ -106,13 +108,23 @@ export class PaymentsService {
     switch (event.type) {
   case 'payment_intent.succeeded': {
     const intent = event.data.object as Stripe.PaymentIntent;
-    await this.markPaid(intent);
+    if (intent.metadata?.type === 'tip') {
+      await this.tipsService.markPaid(intent);
+    } else {
+      await this.markPaid(intent);
+    }
     break;
   }
 
-  case 'payment_intent.payment_failed':
-    await this.markFailed(event.data.object as Stripe.PaymentIntent);
+  case 'payment_intent.payment_failed': {
+    const intent = event.data.object as Stripe.PaymentIntent;
+    if (intent.metadata?.type === 'tip') {
+      await this.tipsService.markFailed(intent);
+    } else {
+      await this.markFailed(intent);
+    }
     break;
+  }
 
   default:
     this.logger.debug(`Unhandled Stripe event type: ${event.type}`);
