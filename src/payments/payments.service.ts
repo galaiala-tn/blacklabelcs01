@@ -1,9 +1,18 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { SupabaseService } from '../supabase/supabase.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType, PaymentStatus, ReservationStatus } from '../common/enums';
+import {
+  NotificationType,
+  PaymentStatus,
+  ReservationStatus,
+} from '../common/enums';
 import { CreatePaymentIntentDto } from './dto/payments.dto';
 
 /**
@@ -38,7 +47,8 @@ export class PaymentsService {
       .eq('id', dto.reservationId)
       .single();
 
-    if (error || !reservation) throw new NotFoundException('Reservation not found');
+    if (error || !reservation)
+      throw new NotFoundException('Reservation not found');
     if (reservation.customer_id !== customerId) {
       throw new BadRequestException('This reservation does not belong to you');
     }
@@ -82,81 +92,35 @@ export class PaymentsService {
     let event: Stripe.Event;
 
     try {
-      event = this.stripe.webhooks.constructEvent(rawBody, signature, webhookSecret!);
+      event = this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        webhookSecret!,
+      );
     } catch (err) {
-      throw new BadRequestException(`Invalid Stripe webhook signature: ${(err as Error).message}`);
+      throw new BadRequestException(
+        `Invalid Stripe webhook signature: ${(err as Error).message}`,
+      );
     }
 
     switch (event.type) {
-      case 'payment_intent.succeeded': {
-        const intent = event.data.object as Stripe.PaymentIntent;
-        if (intent.metadata?.type === 'tip') {
-          await this.markTipPaid(intent);
-        } else {
-          await this.markPaid(intent);
-        }
-        break;
-      }
-      case 'payment_intent.payment_failed':
-        await this.markFailed(event.data.object as Stripe.PaymentIntent);
-        break;
-      default:
-        this.logger.debug(`Unhandled Stripe event type: ${event.type}`);
-    }
+  case 'payment_intent.succeeded': {
+    const intent = event.data.object as Stripe.PaymentIntent;
+    await this.markPaid(intent);
+    break;
+  }
+
+  case 'payment_intent.payment_failed':
+    await this.markFailed(event.data.object as Stripe.PaymentIntent);
+    break;
+
+  default:
+    this.logger.debug(`Unhandled Stripe event type: ${event.type}`);
+}
 
     return { received: true };
   }
 
-  /** Tip PaymentIntents (created by TipsService) never touch the `payments`
-   *  table — they resolve directly into a `tips` row here. */
-  private async markTipPaid(intent: Stripe.PaymentIntent) {
-  const {
-    reservationId,
-    customerId,
-    chauffeurId,
-  } = intent.metadata as Record<string, string>;
-
-  const client = this.supabase.getClient();
-
-  this.logger.log(
-    `💰 Recording tip: ${JSON.stringify({
-      paymentIntentId: intent.id,
-      reservationId,
-      customerId,
-      chauffeurId,
-      amount: intent.amount / 100,
-    })}`,
-  );
-
-  const { data, error } = await client
-    .from('tips')
-    .insert({
-      reservation_id: reservationId,
-      customer_id: customerId,
-      chauffeur_id: chauffeurId,
-      amount: intent.amount / 100,
-      payment_id: intent.id, // ✅ Stripe PaymentIntent ID
-    })
-    .select()
-    .single();
-
-  if (error) {
-    this.logger.error(
-      `❌ Failed to record tip for reservation ${reservationId}: ${JSON.stringify(error)}`,
-    );
-    return;
-  }
-
-  this.logger.log(`✅ Tip inserted successfully: ${JSON.stringify(data)}`);
-
-  await this.notifications.send({
-    userId: chauffeurId,
-    reservationId,
-    type: NotificationType.GENERAL,
-    title: 'You received a tip!',
-    body: `A customer left you a $${(intent.amount / 100).toFixed(2)} tip.`,
-  });
-}
 
   private async markPaid(intent: Stripe.PaymentIntent) {
     const client = this.supabase.getClient();
@@ -195,7 +159,8 @@ export class PaymentsService {
       })
       .eq('provider_ref', intent.id);
 
-    if (error) this.logger.error(`Failed to record payment failure: ${error.message}`);
+    if (error)
+      this.logger.error(`Failed to record payment failure: ${error.message}`);
   }
 
   async listForCustomer(customerId: string) {
@@ -211,14 +176,16 @@ export class PaymentsService {
   }
 
   /** Admin-wide view — every payment, with customer name for display. */
- async listAll() {
-  const { data, error } = await this.supabase
-    .getClient()
-    .from('payments')
-    .select('*, customers!payments_customer_id_fkey(profiles!customers_id_fkey(full_name, email))')
-    .order('created_at', { ascending: false });
+  async listAll() {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('payments')
+      .select(
+        '*, customers!payments_customer_id_fkey(profiles!customers_id_fkey(full_name, email))',
+      )
+      .order('created_at', { ascending: false });
 
-  if (error) throw new BadRequestException(error.message);
-  return data;
-}
+    if (error) throw new BadRequestException(error.message);
+    return data;
+  }
 }

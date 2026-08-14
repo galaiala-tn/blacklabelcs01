@@ -19,7 +19,6 @@ import { PromoModule } from './promo/promo.module';
 import { RecurringBookingsModule } from './recurring-bookings/recurring-bookings.module';
 import { ChatModule } from './chat/chat.module';
 import { EarningsModule } from './earnings/earnings.module';
-import { TipsModule } from './tips/tips.module';
 import { SharingModule } from './sharing/sharing.module';
 import { CreditsModule } from './credits/credits.module';
 import { ChauffeurDocumentsModule } from './chauffeur-documents/chauffeur-documents.module';
@@ -46,7 +45,6 @@ import { ChauffeurDocumentsModule } from './chauffeur-documents/chauffeur-docume
     RecurringBookingsModule,
     ChatModule,
     EarningsModule,
-    TipsModule,
     SharingModule,
     ChauffeurDocumentsModule,
   ],
