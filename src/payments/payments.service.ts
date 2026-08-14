@@ -110,30 +110,53 @@ export class PaymentsService {
   /** Tip PaymentIntents (created by TipsService) never touch the `payments`
    *  table — they resolve directly into a `tips` row here. */
   private async markTipPaid(intent: Stripe.PaymentIntent) {
-    const { reservationId, customerId, chauffeurId } = intent.metadata as Record<string, string>;
-    const client = this.supabase.getClient();
+  const {
+    reservationId,
+    customerId,
+    chauffeurId,
+  } = intent.metadata as Record<string, string>;
 
-    const { error } = await client.from('tips').insert({
+  const client = this.supabase.getClient();
+
+  this.logger.log(
+    `💰 Recording tip: ${JSON.stringify({
+      paymentIntentId: intent.id,
+      reservationId,
+      customerId,
+      chauffeurId,
+      amount: intent.amount / 100,
+    })}`,
+  );
+
+  const { data, error } = await client
+    .from('tips')
+    .insert({
       reservation_id: reservationId,
       customer_id: customerId,
       chauffeur_id: chauffeurId,
       amount: intent.amount / 100,
-      payment_id: null,
-    });
+      payment_id: intent.id, // ✅ Stripe PaymentIntent ID
+    })
+    .select()
+    .single();
 
-    if (error) {
-      this.logger.error(`Failed to record tip for reservation ${reservationId}: ${error.message}`);
-      return;
-    }
-
-    await this.notifications.send({
-      userId: chauffeurId,
-      reservationId,
-      type: NotificationType.GENERAL,
-      title: 'You received a tip!',
-      body: `A customer left you a $${(intent.amount / 100).toFixed(2)} tip.`,
-    });
+  if (error) {
+    this.logger.error(
+      `❌ Failed to record tip for reservation ${reservationId}: ${JSON.stringify(error)}`,
+    );
+    return;
   }
+
+  this.logger.log(`✅ Tip inserted successfully: ${JSON.stringify(data)}`);
+
+  await this.notifications.send({
+    userId: chauffeurId,
+    reservationId,
+    type: NotificationType.GENERAL,
+    title: 'You received a tip!',
+    body: `A customer left you a $${(intent.amount / 100).toFixed(2)} tip.`,
+  });
+}
 
   private async markPaid(intent: Stripe.PaymentIntent) {
     const client = this.supabase.getClient();
