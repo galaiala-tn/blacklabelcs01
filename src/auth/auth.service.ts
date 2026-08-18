@@ -101,6 +101,48 @@ export class AuthService {
     return data;
   }
 
+  async uploadAvatar(userId: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const ext = file.originalname.split('.').pop() || 'jpg';
+    const path = `${userId}/${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await this.supabase
+      .getClient()
+      .storage.from('photo')
+      .upload(path, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      this.logger.error(`Avatar upload failed for ${userId}: ${this.describeError(uploadError)}`);
+      throw new BadRequestException('Avatar upload failed');
+    }
+
+    const { data: publicUrlData } = this.supabase
+      .getClient()
+      .storage.from('photo')
+      .getPublicUrl(path);
+
+    const avatarUrl = publicUrlData.publicUrl;
+
+    const { error: updateError } = await this.supabase
+      .getClient()
+      .from('profiles')
+      .update({ avatar_url: avatarUrl })
+      .eq('id', userId);
+
+    if (updateError) {
+      this.logger.error(`Profile avatar_url update failed for ${userId}: ${this.describeError(updateError)}`);
+      throw new BadRequestException('Could not save avatar');
+    }
+
+    return { avatar_url: avatarUrl };
+  }
+
   async testSupabase() {
     try {
       const { data, error } = await this.supabase.getClient().auth.admin.listUsers();

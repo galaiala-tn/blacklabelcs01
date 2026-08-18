@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { LoginDto, RefreshTokenDto, RegisterDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -33,6 +34,13 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.getProfile(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('me/avatar')
+  @UseInterceptors(FileInterceptor('photo'))
+  uploadAvatar(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: AuthenticatedUser) {
+    return this.authService.uploadAvatar(user.id, file);
   }
 
   @Get('test-supabase')
