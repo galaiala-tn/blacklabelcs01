@@ -106,6 +106,14 @@ export class AuthService {
       throw new BadRequestException('No file uploaded');
     }
 
+    const { data: existingProfile } = await this.supabase
+      .getClient()
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', userId)
+      .single();
+    const oldAvatarUrl = existingProfile?.avatar_url as string | undefined;
+
     const ext = file.originalname.split('.').pop() || 'jpg';
     const path = `${userId}/${Date.now()}.${ext}`;
 
@@ -140,7 +148,28 @@ export class AuthService {
       throw new BadRequestException('Could not save avatar');
     }
 
+    if (oldAvatarUrl) {
+      const oldPath = this.extractStoragePath(oldAvatarUrl);
+      if (oldPath) {
+        const { error: removeError } = await this.supabase
+          .getClient()
+          .storage.from('photo')
+          .remove([oldPath]);
+        if (removeError) {
+          this.logger.warn(`Could not delete old avatar for ${userId}: ${this.describeError(removeError)}`);
+        }
+      }
+    }
+
     return { avatar_url: avatarUrl };
+  }
+
+  /** Extracts the storage object path (e.g. "userId/123.jpg") from a public avatar URL. */
+  private extractStoragePath(url: string): string | null {
+    const marker = '/object/public/photo/';
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.substring(idx + marker.length);
   }
 
   async testSupabase() {
