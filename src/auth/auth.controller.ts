@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
-import { LoginDto, RefreshTokenDto, RegisterDto } from './dto/auth.dto';
+import { LoginDto, RefreshTokenDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthenticatedUser } from './strategies/jwt.strategy';
@@ -34,6 +34,14 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.getProfile(user.id);
+  }
+
+  // Lets the authenticated user update their own full_name and/or phone.
+  // Either field can be omitted; only the fields present in the body are changed.
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  updateProfile(@Body() dto: UpdateProfileDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.authService.updateProfile(user.id, dto);
   }
 
   @UseGuards(JwtAuthGuard)

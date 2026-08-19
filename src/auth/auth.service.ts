@@ -101,6 +101,47 @@ export class AuthService {
     return data;
   }
 
+  /** Updates the caller's own full_name and/or phone. Both fields are optional
+   *  so the client can send just the one field that changed. */
+  async updateProfile(userId: string, updates: { fullName?: string; phone?: string }) {
+    const patch: Record<string, string> = {};
+
+    if (updates.fullName !== undefined) {
+      const trimmed = updates.fullName.trim();
+      if (!trimmed) {
+        throw new BadRequestException('fullName cannot be empty');
+      }
+      patch.full_name = trimmed;
+    }
+
+    if (updates.phone !== undefined) {
+      const trimmed = updates.phone.trim();
+      if (!trimmed) {
+        throw new BadRequestException('phone cannot be empty');
+      }
+      patch.phone = trimmed;
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return this.getProfile(userId);
+    }
+
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('profiles')
+      .update(patch)
+      .eq('id', userId)
+      .select('id, role, full_name, email, phone, avatar_url, is_active, created_at')
+      .single();
+
+    if (error || !data) {
+      this.logger.error(`Profile update failed for ${userId}: ${this.describeError(error)}`);
+      throw new BadRequestException('Could not update profile');
+    }
+
+    return data;
+  }
+
   async uploadAvatar(userId: string, file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file uploaded');

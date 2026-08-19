@@ -38,3 +38,15 @@ export class RefreshTokenDto {
   @IsString()
   refreshToken!: string;
 }
+
+/** Fields the authenticated user can update on their own profile.
+ *  Both are optional so the client can send just the field that changed. */
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+}
