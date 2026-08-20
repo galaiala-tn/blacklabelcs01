@@ -148,4 +148,20 @@ export class NotificationsService {
 
     return { success: true };
   }
+
+  /** Supprime toutes les notifications de l'utilisateur courant. */
+  async deleteAll(userId: string) {
+    const { error } = await this.supabase
+      .getClient()
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) {
+      this.logger.error(`Failed to delete all notifications for user ${userId}: ${error.message}`);
+      throw error;
+    }
+
+    return { success: true };
+  }
 }
