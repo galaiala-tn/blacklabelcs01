@@ -128,4 +128,24 @@ export class NotificationsService {
     if (error) throw error;
     return data;
   }
+
+  /**
+   * Supprime définitivement une notification.
+   * Le filtre `user_id` empêche un utilisateur de supprimer la notification d'un autre.
+   */
+  async delete(notificationId: string, userId: string) {
+    const { error } = await this.supabase
+      .getClient()
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId)
+      .eq('user_id', userId);
+
+    if (error) {
+      this.logger.error(`Failed to delete notification ${notificationId}: ${error.message}`);
+      throw error;
+    }
+
+    return { success: true };
+  }
 }
