@@ -49,6 +49,20 @@ export class ReviewsService {
     return data;
   }
 
+  async getExistingForReservation(reservationId: string, customerId: string) {
+    const client = this.supabase.getClient();
+
+    const { data, error } = await client
+      .from('reviews')
+      .select('*')
+      .eq('reservation_id', reservationId)
+      .eq('customer_id', customerId)
+      .maybeSingle();
+
+    if (error) throw new BadRequestException(error.message);
+    return data; // null if the customer hasn't reviewed this trip yet
+  }
+
   async listForChauffeur(chauffeurId: string) {
     const { data, error } = await this.supabase
       .getClient()

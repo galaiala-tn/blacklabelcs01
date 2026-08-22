@@ -19,6 +19,14 @@ export class ReviewsController {
     return this.reviewsService.create(user.id, dto);
   }
 
+  /** Used by the app to know whether to show the "rate your trip" prompt. */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AppRole.CUSTOMER)
+  @Get('reservations/:id/review')
+  getExistingForReservation(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.reviewsService.getExistingForReservation(id, user.id);
+  }
+
   /** Public — shown on a chauffeur's profile card, no auth required. */
   @Get('chauffeurs/:id/reviews')
   listForChauffeur(@Param('id') id: string) {
